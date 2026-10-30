@@ -63,41 +63,6 @@ This README is the quick reference. The full documentation set lives in [`docs/w
 
 ## Screenshots
 
-Feature comparisons (CorenyaDonutSMP vs Original DonutSMP):
-
-| CorenyaDonutSMP | Original DonutSMP |
-| :---: | :---: |
-| <img src="images/1.png" alt="TAB - CorenyaDonutSMP" width="420"> | <img src="images/2.png" alt="TAB - Original DonutSMP" width="420"> |
-| <img src="images/3.png" alt="Scoreboards - CorenyaDonutSMP" width="420"> | <img src="images/4.png" alt="Scoreboards - Original DonutSMP" width="420"> |
-| <img src="images/5.png" alt="Dialogues - CorenyaDonutSMP" width="420"> | <img src="images/6.png" alt="Dialogues - Original DonutSMP" width="420"> |
-| <img src="images/7.png" alt="Auction House - CorenyaDonutSMP" width="420"> | <img src="images/8.png" alt="Auction House - Original DonutSMP" width="420"> |
-| <img src="images/9.png" alt="Bounty - CorenyaDonutSMP" width="420"> | <img src="images/10.png" alt="Bounty - Original DonutSMP" width="420"> |
-| <img src="images/11.png" alt="Friends - CorenyaDonutSMP" width="420"> | <img src="images/12.png" alt="Friends - Original DonutSMP" width="420"> |
-| <img src="images/13.png" alt="Homes - CorenyaDonutSMP" width="420"> | <img src="images/14.png" alt="Homes - Original DonutSMP" width="420"> |
-| <img src="images/15.png" alt="Leaderboards - CorenyaDonutSMP" width="420"> | <img src="images/16.png" alt="Leaderboards - Original DonutSMP" width="420"> |
-| <img src="images/17.png" alt="Orders - CorenyaDonutSMP" width="420"> | <img src="images/18.png" alt="Orders - Original DonutSMP" width="420"> |
-| <img src="images/19.png" alt="Pay - CorenyaDonutSMP" width="420"> | <img src="images/20.png" alt="Pay - Original DonutSMP" width="420"> |
-| <img src="images/21.png" alt="Quick Buy - CorenyaDonutSMP" width="420"> | <img src="images/22.png" alt="Quick Buy - Original DonutSMP" width="420"> |
-| <img src="images/23.png" alt="Rank Menu - CorenyaDonutSMP" width="420"> | <img src="images/24.png" alt="Rank Menu - Original DonutSMP" width="420"> |
-| <img src="images/25.png" alt="RTP Queue - CorenyaDonutSMP" width="420"> | <img src="images/26.png" alt="RTP Queue - Original DonutSMP" width="420"> |
-| <img src="images/27.png" alt="Sell - CorenyaDonutSMP" width="420"> | <img src="images/28.png" alt="Sell - Original DonutSMP" width="420"> |
-| <img src="images/29.png" alt="Settings - CorenyaDonutSMP" width="420"> | <img src="images/30.png" alt="Settings - Original DonutSMP" width="420"> |
-| <img src="images/31.png" alt="Shard Shop - CorenyaDonutSMP" width="420"> | <img src="images/32.png" alt="Shard Shop - Original DonutSMP" width="420"> |
-| <img src="images/33.png" alt="Spawners - CorenyaDonutSMP" width="420"> | <img src="images/34.png" alt="Spawners - Original DonutSMP" width="420"> |
-| <img src="images/35.png" alt="Stats - CorenyaDonutSMP" width="420"> | <img src="images/36.png" alt="Stats - Original DonutSMP" width="420"> |
-| <img src="images/37.png" alt="Teleport - CorenyaDonutSMP" width="420"> | <img src="images/38.png" alt="Teleport - Original DonutSMP" width="420"> |
-
-Feature panels and in-game menus:
-
-|   |   |   |
-| :---: | :---: | :---: |
-| <img src="images/cds2.png" alt="CorenyaDonutSMP feature panel 2" width="270"> | <img src="images/cds3.png" alt="CorenyaDonutSMP feature panel 3" width="270"> | <img src="images/cds4.png" alt="CorenyaDonutSMP feature panel 4" width="270"> |
-| <img src="images/cds5.png" alt="CorenyaDonutSMP feature panel 5" width="270"> | <img src="images/cds6.png" alt="CorenyaDonutSMP feature panel 6" width="270"> | <img src="images/cds7.png" alt="CorenyaDonutSMP feature panel 7" width="270"> |
-| <img src="images/cds8.png" alt="CorenyaDonutSMP feature panel 8" width="270"> | <img src="images/cds9.png" alt="CorenyaDonutSMP feature panel 9" width="270"> | <img src="images/cds10.png" alt="CorenyaDonutSMP feature panel 10" width="270"> |
-| <img src="images/cds11.png" alt="CorenyaDonutSMP feature panel 11" width="270"> | <img src="images/cds12.png" alt="CorenyaDonutSMP feature panel 12" width="270"> | <img src="images/cds13.png" alt="CorenyaDonutSMP feature panel 13" width="270"> |
-| <img src="images/cds14.png" alt="CorenyaDonutSMP feature panel 14" width="270"> | <img src="images/cds15.png" alt="CorenyaDonutSMP feature panel 15" width="270"> | <img src="images/cds16.png" alt="CorenyaDonutSMP feature panel 16" width="270"> |
-| <img src="images/cds17.png" alt="CorenyaDonutSMP feature panel 17" width="270"> | <img src="images/cds18.png" alt="CorenyaDonutSMP feature panel 18" width="270"> | <img src="images/cds19.png" alt="CorenyaDonutSMP feature panel 19" width="270"> |
-
 Gameplay clips:
 
 |   |   |
