@@ -34,7 +34,7 @@ public class PortalManager {
     private static final Pattern VALID_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{1,32}$");
     private static final String DESTINATION_TYPE_RTP = "RTP";
     private static final String DESTINATION_TYPE_AFK = "AFK";
-    private static final String HOLOGRAM_TAG = "uds_portal_hologram";
+    private static final String HOLOGRAM_TAG = "cds_portal_hologram";
 
     private final CorenyaDonutSMP plugin;
     private final Map<UUID, Long> entryDebounceUntil = new LinkedHashMap<>();

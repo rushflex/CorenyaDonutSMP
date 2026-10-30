@@ -418,7 +418,7 @@ final class HideProtocolLibBridge implements HidePacketBridge {
 
     private String nametagTeamName(UUID profileId) {
         String compactUuid = profileId.toString().replace("-", "");
-        return "udsh_" + compactUuid.substring(0, 11);
+        return "cdsh_" + compactUuid.substring(0, 11);
     }
 
     private void syncNametagDisplay(Player target) {

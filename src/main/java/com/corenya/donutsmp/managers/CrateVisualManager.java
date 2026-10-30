@@ -35,9 +35,9 @@ import java.util.UUID;
 
 public class CrateVisualManager {
 
-    private static final String HOLOGRAM_TAG = "uds_crate_hologram";
-    private static final String PERSONAL_TAG = "uds_crate_personal_hologram";
-    private static final String PREVIEW_TAG = "uds_crate_preview";
+    private static final String HOLOGRAM_TAG = "cds_crate_hologram";
+    private static final String PERSONAL_TAG = "cds_crate_personal_hologram";
+    private static final String PREVIEW_TAG = "cds_crate_preview";
     private static final long GATE_RECHECK_INTERVAL_MS = 1000L;
     /** Matches PORTAL-SYSTEM.HOLOGRAM.LINE-SPACING in config.yml, so both holograms read alike. */
     static final double DEFAULT_HOLOGRAM_LINE_SPACING = 0.27D;

@@ -91,12 +91,12 @@ Feature panels and in-game menus:
 
 |   |   |   |
 | :---: | :---: | :---: |
-| <img src="images/uds2.png" alt="CorenyaDonutSMP feature panel 2" width="270"> | <img src="images/uds3.png" alt="CorenyaDonutSMP feature panel 3" width="270"> | <img src="images/uds4.png" alt="CorenyaDonutSMP feature panel 4" width="270"> |
-| <img src="images/uds5.png" alt="CorenyaDonutSMP feature panel 5" width="270"> | <img src="images/uds6.png" alt="CorenyaDonutSMP feature panel 6" width="270"> | <img src="images/uds7.png" alt="CorenyaDonutSMP feature panel 7" width="270"> |
-| <img src="images/uds8.png" alt="CorenyaDonutSMP feature panel 8" width="270"> | <img src="images/uds9.png" alt="CorenyaDonutSMP feature panel 9" width="270"> | <img src="images/uds10.png" alt="CorenyaDonutSMP feature panel 10" width="270"> |
-| <img src="images/uds11.png" alt="CorenyaDonutSMP feature panel 11" width="270"> | <img src="images/uds12.png" alt="CorenyaDonutSMP feature panel 12" width="270"> | <img src="images/uds13.png" alt="CorenyaDonutSMP feature panel 13" width="270"> |
-| <img src="images/uds14.png" alt="CorenyaDonutSMP feature panel 14" width="270"> | <img src="images/uds15.png" alt="CorenyaDonutSMP feature panel 15" width="270"> | <img src="images/uds16.png" alt="CorenyaDonutSMP feature panel 16" width="270"> |
-| <img src="images/uds17.png" alt="CorenyaDonutSMP feature panel 17" width="270"> | <img src="images/uds18.png" alt="CorenyaDonutSMP feature panel 18" width="270"> | <img src="images/uds19.png" alt="CorenyaDonutSMP feature panel 19" width="270"> |
+| <img src="images/cds2.png" alt="CorenyaDonutSMP feature panel 2" width="270"> | <img src="images/cds3.png" alt="CorenyaDonutSMP feature panel 3" width="270"> | <img src="images/cds4.png" alt="CorenyaDonutSMP feature panel 4" width="270"> |
+| <img src="images/cds5.png" alt="CorenyaDonutSMP feature panel 5" width="270"> | <img src="images/cds6.png" alt="CorenyaDonutSMP feature panel 6" width="270"> | <img src="images/cds7.png" alt="CorenyaDonutSMP feature panel 7" width="270"> |
+| <img src="images/cds8.png" alt="CorenyaDonutSMP feature panel 8" width="270"> | <img src="images/cds9.png" alt="CorenyaDonutSMP feature panel 9" width="270"> | <img src="images/cds10.png" alt="CorenyaDonutSMP feature panel 10" width="270"> |
+| <img src="images/cds11.png" alt="CorenyaDonutSMP feature panel 11" width="270"> | <img src="images/cds12.png" alt="CorenyaDonutSMP feature panel 12" width="270"> | <img src="images/cds13.png" alt="CorenyaDonutSMP feature panel 13" width="270"> |
+| <img src="images/cds14.png" alt="CorenyaDonutSMP feature panel 14" width="270"> | <img src="images/cds15.png" alt="CorenyaDonutSMP feature panel 15" width="270"> | <img src="images/cds16.png" alt="CorenyaDonutSMP feature panel 16" width="270"> |
+| <img src="images/cds17.png" alt="CorenyaDonutSMP feature panel 17" width="270"> | <img src="images/cds18.png" alt="CorenyaDonutSMP feature panel 18" width="270"> | <img src="images/cds19.png" alt="CorenyaDonutSMP feature panel 19" width="270"> |
 
 Gameplay clips:
 

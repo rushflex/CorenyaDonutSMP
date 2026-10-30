@@ -55,8 +55,8 @@ import java.util.logging.Level;
  */
 public class MoneyNametagManager {
 
-    private static final String OBJECTIVE = "uds_money";
-    private static final String LEGACY_DISPLAY_TAG = "uds_money_nametag";
+    private static final String OBJECTIVE = "cds_money";
+    private static final String LEGACY_DISPLAY_TAG = "cds_money_nametag";
     private static final String BALANCE_PLACEHOLDER = "{balance}";
 
     private static final int OBJECTIVE_CREATE = 0;
