@@ -1,0 +1,39 @@
+package com.corenya.donutsmp.tasks;
+
+import com.corenya.donutsmp.CorenyaDonutSMP;
+
+/**
+ * Runs every N minutes. Broadcasts countdown warnings then clears entities.
+ */
+public class ClearLagTask implements Runnable {
+
+    private static final int[] WARN_AT = {60, 30, 15, 10, 5, 4, 3, 2, 1};
+
+    private final CorenyaDonutSMP plugin;
+    private int secondsLeft;
+
+    public ClearLagTask(CorenyaDonutSMP plugin) {
+        this.plugin = plugin;
+        this.secondsLeft = plugin.getClearLagManager().getIntervalMinutes() * 60;
+    }
+
+    @Override
+    public void run() {
+        if (!plugin.getClearLagManager().isEnabled()) return;
+        secondsLeft--;
+        for (int w : WARN_AT) {
+            if (secondsLeft == w) {
+                plugin.getClearLagManager().broadcastCountdown(w);
+                return;
+            }
+        }
+        if (secondsLeft <= 0) {
+            plugin.getClearLagManager().clearEntities();
+            secondsLeft = plugin.getClearLagManager().getIntervalMinutes() * 60;
+        }
+    }
+
+    public static void start(CorenyaDonutSMP plugin) {
+        plugin.getSpigotScheduler().runGlobalTimer(new ClearLagTask(plugin), 20L, 20L); // every second
+    }
+}

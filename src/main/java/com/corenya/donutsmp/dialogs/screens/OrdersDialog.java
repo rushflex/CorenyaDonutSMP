@@ -1,0 +1,762 @@
+package com.corenya.donutsmp.dialogs.screens;
+
+import com.corenya.donutsmp.CorenyaDonutSMP;
+import com.corenya.donutsmp.dialogs.DialogActions;
+import com.corenya.donutsmp.dialogs.DialogConfig;
+import com.corenya.donutsmp.dialogs.DialogFactory;
+import com.corenya.donutsmp.dialogs.DialogScreen;
+import com.corenya.donutsmp.dialogs.DialogSession;
+import com.corenya.donutsmp.dialogs.DialogSupport;
+import com.corenya.donutsmp.managers.CurrencyManager;
+import com.corenya.donutsmp.managers.OrdersManager;
+import com.corenya.donutsmp.menus.OrdersBrowseMenu;
+import com.corenya.donutsmp.menus.OrdersMyOrdersMenu;
+import com.corenya.donutsmp.models.OrderSort;
+import com.corenya.donutsmp.utils.ColorUtils;
+import com.corenya.donutsmp.utils.NumberUtils;
+import com.corenya.donutsmp.utils.PlayerSettingUtils;
+import io.papermc.paper.dialog.DialogResponseView;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import com.corenya.donutsmp.models.ItemKey;
+import com.corenya.donutsmp.models.QuickBuyEntry;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public final class OrdersDialog extends DialogScreen {
+
+    private static final int BUTTON_WIDTH = 150;
+    private static final int CHOOSE_INPUT_WIDTH = 220;
+    private static final int CHOOSE_SEARCH_WIDTH = 100;
+    private static final int CHOOSE_ITEM_WIDTH = 130;
+    private static final int CHOOSE_CANCEL_WIDTH = 100;
+    private static final int AMOUNT_INPUT_WIDTH = 200;
+    private static final int AMOUNT_BUTTON_WIDTH = 150;
+    private static final int PRICE_INPUT_WIDTH = 200;
+    private static final int PRICE_BUTTON_WIDTH = 150;
+    private static final int REVIEW_BUTTON_WIDTH = 130;
+    private static final int REVIEW_CREATE_WIDTH = 150;
+
+    public OrdersDialog(CorenyaDonutSMP plugin, DialogConfig config, DialogSession.Store sessions) {
+        super(plugin, config, sessions);
+    }
+
+    public boolean openSearch(Player player, OrderSort sort, String categoryFilter, String query) {
+        plugin.getOrdersManager().getUiState(player.getUniqueId()).sort(sort);
+        plugin.getOrdersManager().getUiState(player.getUniqueId()).filter(categoryFilter);
+        String current = query == null ? "" : query;
+        return show(player, screen(player)
+                .title(text("ORDERS.GUI.DIALOG.SEARCH.TITLE", "Search Orders"))
+                .item(new ItemStack(Material.OAK_SIGN))
+                .columns(2)
+                .input(new DialogConfig.InputSpec(
+                        "query",
+                        text("ORDERS.GUI.DIALOG.SEARCH.INPUT", "Search"),
+                        300,
+                        32,
+                        current,
+                        List.of()
+                ))
+                .button(text("ORDERS.GUI.DIALOG.SEARCH.CANCEL", "&cCancel"), null, BUTTON_WIDTH, DialogActions.ORD_SEARCH_CAN)
+                .button(text("ORDERS.GUI.DIALOG.SEARCH.SUBMIT", "&aSearch"), null, BUTTON_WIDTH, DialogActions.ORD_SEARCH_GO)
+                .build());
+    }
+
+    public boolean openChooseItem(Player player) {
+        return openChooseItem(player, "");
+    }
+
+    public boolean openChooseItem(Player player, String query) {
+        plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+        String q = query == null ? "" : query.trim();
+        DialogFactory.Screen screen = screen(player)
+                .title(text("ORDERS.GUI.DIALOG.CHOOSE.TITLE", "Choose Item"))
+                .columns(4)
+                .input(new DialogConfig.InputSpec(
+                        "search",
+                        text("ORDERS.GUI.DIALOG.CHOOSE.INPUT", "Search"),
+                        CHOOSE_INPUT_WIDTH,
+                        32,
+                        q,
+                        List.of()
+                ));
+
+        screen.canCloseWithEscape(true);
+        screen.button(text("ORDERS.GUI.DIALOG.CHOOSE.SEARCH", "&fSearch"), null, CHOOSE_SEARCH_WIDTH, DialogActions.ORD_PICK_SRCH);
+
+        OrdersManager manager = plugin.getOrdersManager();
+        // shop.yml QUICK-BUY.CHOOSE-ITEM.BLACKLIST is Quick Buy only.
+        for (Material mat : QuickBuyItemDialog.getSelectableMaterials(plugin, q, List.of())) {
+            if (!manager.canOrderMaterial(mat)) {
+                continue;
+            }
+            String name = manager.describeMaterial(mat);
+            String sprite = QuickBuyItemDialog.getSpriteTag(mat);
+            String label = sprite.isEmpty() ? ("&f" + name) : (sprite + " &f" + name);
+            screen.button(
+                    label,
+                    QuickBuyItemDialog.chooseItemWorthTooltip(plugin, player, mat, name),
+                    CHOOSE_ITEM_WIDTH,
+                    DialogActions.ORD_ITEM + mat.name().toLowerCase(Locale.ROOT)
+            );
+        }
+
+        screen.exit(text("ORDERS.GUI.DIALOG.CHOOSE.CANCEL", "&cCancel"), DialogActions.ORD_PICK_CAN, CHOOSE_CANCEL_WIDTH);
+        return show(player, screen.build());
+    }
+
+    public boolean openEnchantments(Player player, Material material) {
+        if (material == null || !QuickBuyItemDialog.isEnchantable(material)) {
+            return openAmount(player);
+        }
+        OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+        ItemStack item = session.getChosenItem();
+        if (item == null || item.getType() != material) {
+            item = new ItemStack(material);
+            session.setChosenItem(item);
+        }
+        Map<Enchantment, Integer> selected = getSelectedEnchantments(item);
+
+        ItemStack preview = item.clone();
+
+        DialogFactory.Screen screen = screen(player)
+                .title("Choose Enchantments")
+                .item(preview)
+                .columns(QuickBuyItemDialog.ENCHANT_COLUMNS);
+
+        List<QuickBuyItemDialog.EnchantmentSpec> specs = QuickBuyItemDialog.getEnchantmentSpecs(plugin, material);
+        for (QuickBuyItemDialog.EnchantmentSpec spec : specs) {
+            int currentLevel = 0;
+            if (spec.enchantment() != null) {
+                currentLevel = selected.getOrDefault(spec.enchantment(), 0);
+            } else {
+                for (Map.Entry<Enchantment, Integer> e : selected.entrySet()) {
+                    if (e.getKey() != null && e.getKey().getKey().getKey().equalsIgnoreCase(spec.key())) {
+                        currentLevel = e.getValue();
+                        break;
+                    }
+                }
+            }
+            String enchKey = spec.key().toLowerCase(Locale.ROOT);
+
+            Component nameComp;
+            if (spec.isCurse()) {
+                NamedTextColor color = (currentLevel > 0) ? NamedTextColor.GREEN : NamedTextColor.RED;
+                nameComp = Component.text(spec.displayName(), color).decoration(TextDecoration.ITALIC, false);
+            } else {
+                NamedTextColor color = (currentLevel > 0) ? NamedTextColor.GREEN : NamedTextColor.WHITE;
+                String text = spec.displayName() + (spec.maxLevel() > 1 ? (" " + (currentLevel > 0 ? QuickBuyItemDialog.toRoman(currentLevel) : "I")) : "");
+                nameComp = Component.text(text, color).decoration(TextDecoration.ITALIC, false);
+            }
+
+            int nameTargetLevel = currentLevel > 0 ? 0 : 1;
+            screen.button(
+                    nameComp,
+                    null,
+                    QuickBuyItemDialog.ENCHANT_NAME_WIDTH,
+                    DialogActions.ORD_ENCHANT_LVL + material.name() + "/" + enchKey + "/" + nameTargetLevel
+            );
+
+            for (int lvl = 1; lvl <= 5; lvl++) {
+                if (lvl <= spec.maxLevel()) {
+                    String roman = QuickBuyItemDialog.toRoman(lvl);
+                    NamedTextColor color = (currentLevel == lvl) ? NamedTextColor.GREEN : NamedTextColor.WHITE;
+                    Component lvlComp = Component.text(roman, color).decoration(TextDecoration.ITALIC, false);
+                    screen.button(
+                            lvlComp,
+                            null,
+                            QuickBuyItemDialog.ENCHANT_LEVEL_WIDTH,
+                            DialogActions.ORD_ENCHANT_LVL + material.name() + "/" + enchKey + "/" + lvl
+                    );
+                } else {
+                    screen.inertButton("", null, QuickBuyItemDialog.ENCHANT_INERT_WIDTH);
+                }
+            }
+        }
+
+        screen.button(
+                Component.text("Back to Items", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false),
+                null,
+                QuickBuyItemDialog.ENCHANT_BOTTOM_WIDTH,
+                DialogActions.ORD_ENCHANT_BACK
+        );
+        if (selected.isEmpty()) {
+            screen.button(
+                    Component.text("Skip Enchantments", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false),
+                    null,
+                    QuickBuyItemDialog.ENCHANT_BOTTOM_WIDTH,
+                    DialogActions.ORD_ENCHANT_SKIP + material.name()
+            );
+        } else {
+            screen.button(
+                    Component.text("Confirm Enchantments", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false),
+                    null,
+                    QuickBuyItemDialog.ENCHANT_BOTTOM_WIDTH,
+                    DialogActions.ORD_ENCHANT_CONFIRM + material.name()
+            );
+        }
+
+        screen.exit("&cCancel", DialogActions.ORD_REV_CAN, 120);
+        return show(player, screen.build());
+    }
+
+    private static Map<Enchantment, Integer> getSelectedEnchantments(ItemStack item) {
+        Map<Enchantment, Integer> selected = new LinkedHashMap<>();
+        if (item != null && item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            if (item.getType() == Material.ENCHANTED_BOOK && meta instanceof EnchantmentStorageMeta esm) {
+                selected.putAll(esm.getStoredEnchants());
+            } else {
+                selected.putAll(meta.getEnchants());
+            }
+        }
+        return selected;
+    }
+
+    private static void applyEnchantments(ItemStack item, Map<Enchantment, Integer> enchants) {
+        if (item == null) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        if (item.getType() == Material.ENCHANTED_BOOK && meta instanceof EnchantmentStorageMeta esm) {
+            for (Enchantment e : new ArrayList<>(esm.getStoredEnchants().keySet())) {
+                esm.removeStoredEnchant(e);
+            }
+            for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
+                esm.addStoredEnchant(entry.getKey(), entry.getValue(), true);
+            }
+        } else {
+            for (Enchantment e : new ArrayList<>(meta.getEnchants().keySet())) {
+                meta.removeEnchant(e);
+            }
+            for (Map.Entry<Enchantment, Integer> entry : enchants.entrySet()) {
+                meta.addEnchant(entry.getKey(), entry.getValue(), true);
+            }
+        }
+        item.setItemMeta(meta);
+    }
+
+    public boolean openAmount(Player player) {
+        OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+        ItemStack item = session.getChosenItem();
+        if (item == null) {
+            return openChooseItem(player);
+        }
+        int amount = session.getAmount() > 0 ? session.getAmount() : 1;
+        return show(player, screen(player)
+                .title(text("ORDERS.GUI.DIALOG.AMOUNT.TITLE", "How many?"))
+                .item(item.clone())
+                .columns(2)
+                .canCloseWithEscape(true)
+                .input(new DialogConfig.InputSpec(
+                        "amount",
+                        text("ORDERS.GUI.DIALOG.AMOUNT.INPUT", "Amount"),
+                        AMOUNT_INPUT_WIDTH,
+                        10,
+                        String.valueOf(amount),
+                        List.of()
+                ))
+                .button(text("ORDERS.GUI.DIALOG.AMOUNT.CANCEL", "&cCancel"), null, AMOUNT_BUTTON_WIDTH, DialogActions.ORD_AMT_CAN)
+                .button(text("ORDERS.GUI.DIALOG.AMOUNT.NEXT", "&aNext"), null, AMOUNT_BUTTON_WIDTH, DialogActions.ORD_AMT_NEXT)
+                .build());
+    }
+
+    public boolean openPrice(Player player, boolean invalid) {
+        OrdersManager manager = plugin.getOrdersManager();
+        OrdersManager.NewOrderSession session = manager.getOrCreateNewOrderSession(player.getUniqueId());
+        ItemStack item = session.getChosenItem();
+        if (item == null) {
+            return openChooseItem(player);
+        }
+        int amount = Math.max(1, session.getAmount());
+        DialogFactory.Screen screen = screen(player)
+                .title(text("ORDERS.GUI.DIALOG.PRICE.TITLE", "Price per item?"));
+        if (invalid) {
+            screen.text(text("ORDERS.GUI.DIALOG.PRICE.INVALID", "&cInvalid price."));
+        }
+        screen.item(item.clone())
+                .text(formatAmountLine("ORDERS.GUI.DIALOG.PRICE.AMOUNT", "&7Amount: &f{amount}", amount))
+                .text(formatPriceLine(
+                        "Minimum:",
+                        stripNumber(manager.getMinPriceEach()),
+                        text(
+                                "ORDERS.GUI.DIALOG.PRICE.MINIMUM",
+                                "&7Minimum: &a$ &f{min}",
+                                "{min}", stripNumber(manager.getMinPriceEach()),
+                                "{symbol}", plugin.getCurrencyManager().symbol(CurrencyManager.CurrencyType.MONEY),
+                                "{symbol_colored}", plugin.getCurrencyManager().coloredSymbol(CurrencyManager.CurrencyType.MONEY)
+                        )
+                ))
+                .columns(2)
+                .canCloseWithEscape(true)
+                .input(new DialogConfig.InputSpec(
+                        "price",
+                        text("ORDERS.GUI.DIALOG.PRICE.INPUT", "Price"),
+                        PRICE_INPUT_WIDTH,
+                        16,
+                        session.getPriceEach() > 0D ? stripNumber(session.getPriceEach()) : "",
+                        List.of()
+                ))
+                .button(text("ORDERS.GUI.DIALOG.PRICE.CANCEL", "&cCancel"), null, PRICE_BUTTON_WIDTH, DialogActions.ORD_PRICE_CAN)
+                .button(text("ORDERS.GUI.DIALOG.PRICE.NEXT", "&aReview Order"), null, PRICE_BUTTON_WIDTH, DialogActions.ORD_PRICE_GO);
+        return show(player, screen.build());
+    }
+
+    public boolean openReview(Player player) {
+        OrdersManager manager = plugin.getOrdersManager();
+        OrdersManager.NewOrderSession session = manager.getOrCreateNewOrderSession(player.getUniqueId());
+        ItemStack item = session.getChosenItem();
+        if (item == null || session.getAmount() <= 0 || session.getPriceEach() <= 0D) {
+            return openChooseItem(player);
+        }
+        String itemName = manager.describeItem(item);
+        String price = stripNumber(session.getPriceEach());
+        String total = stripNumber(manager.roundCurrency(session.getAmount() * session.getPriceEach()));
+        var reviewScreen = screen(player)
+                .title(text("ORDERS.GUI.DIALOG.REVIEW.TITLE", "Review Order"))
+                .item(item.clone())
+                .text(formatItemLine(text("ORDERS.GUI.DIALOG.REVIEW.ITEM", "&7Item: &f{item}", "{item}", itemName), itemName));
+
+        ItemKey itemKey = ItemKey.fromStack(item);
+        if (!itemKey.enchants.isEmpty()) {
+            reviewScreen.text("&7Enchants: &f" + String.join(", ", itemKey.enchantLoreLines("")));
+        }
+
+        reviewScreen.text(formatAmountLine("ORDERS.GUI.DIALOG.REVIEW.AMOUNT", "&7Amount: &f{amount}", session.getAmount()))
+                .text(formatPriceLine(
+                        "Price:",
+                        price + " each",
+                        text(
+                                "ORDERS.GUI.DIALOG.REVIEW.PRICE",
+                                "&7Price: &a$ &f{price} each",
+                                "{price}", price,
+                                "{symbol}", plugin.getCurrencyManager().symbol(CurrencyManager.CurrencyType.MONEY),
+                                "{symbol_colored}", plugin.getCurrencyManager().coloredSymbol(CurrencyManager.CurrencyType.MONEY)
+                        )
+                ))
+                .text(formatPriceLine(
+                        "Total:",
+                        total,
+                        text(
+                                "ORDERS.GUI.DIALOG.REVIEW.TOTAL",
+                                "&7Total: &a$ &f{total}",
+                                "{total}", total,
+                                "{symbol}", plugin.getCurrencyManager().symbol(CurrencyManager.CurrencyType.MONEY),
+                                "{symbol_colored}", plugin.getCurrencyManager().coloredSymbol(CurrencyManager.CurrencyType.MONEY)
+                        )
+                ))
+                .columns(2)
+                .canCloseWithEscape(true)
+                .button(text("ORDERS.GUI.DIALOG.REVIEW.CANCEL", "&cCancel"), null, REVIEW_BUTTON_WIDTH, DialogActions.ORD_REV_CAN)
+                .button(text("ORDERS.GUI.DIALOG.REVIEW.CHANGE_ITEM", "Change Item"), null, REVIEW_BUTTON_WIDTH, DialogActions.ORD_REV_ITEM);
+
+        if (QuickBuyItemDialog.isEnchantable(item.getType())) {
+            reviewScreen.button("Change Enchants", null, REVIEW_BUTTON_WIDTH, DialogActions.ORD_REV_ENCHANT);
+        }
+
+        reviewScreen.button(text("ORDERS.GUI.DIALOG.REVIEW.CHANGE_AMOUNT", "Change Amount"), null, REVIEW_BUTTON_WIDTH, DialogActions.ORD_REV_AMT)
+                .button(text("ORDERS.GUI.DIALOG.REVIEW.CHANGE_PRICE", "Change Price"), null, REVIEW_BUTTON_WIDTH, DialogActions.ORD_REV_PRICE)
+                .button(text("ORDERS.GUI.DIALOG.REVIEW.CREATE", "&aCreate Order"), null, REVIEW_CREATE_WIDTH, DialogActions.ORD_REV_CREATE);
+
+        return show(player, reviewScreen.build());
+    }
+
+    @Override
+    public boolean handle(Player player, String action, DialogResponseView response) {
+        if (DialogActions.ORD_SEARCH_CAN.equals(action)) {
+            click(player);
+            reopenBrowse(player);
+            return true;
+        }
+        if (DialogActions.ORD_SEARCH_GO.equals(action)) {
+            click(player);
+            String query = input(response, "query");
+            var state = plugin.getOrdersManager().getUiState(player.getUniqueId());
+            plugin.getOrdersManager().playSound(player, "ORDERS.SEARCH");
+            DialogSupport.close(player);
+            plugin.getSpigotScheduler().runEntity(player, () -> new OrdersBrowseMenu(
+                    plugin,
+                    1,
+                    state.sort(),
+                    state.filter(),
+                    query == null ? "" : query
+            ).open(player));
+            return true;
+        }
+        if (DialogActions.ORD_PICK_CAN.equals(action)) {
+            click(player);
+            if (backToReviewIfDraft(player)) {
+                return true;
+            }
+            plugin.getOrdersManager().clearPendingCreation(player.getUniqueId());
+            reopenMyOrders(player);
+            return true;
+        }
+        if (DialogActions.ORD_REV_CAN.equals(action)) {
+            click(player);
+            plugin.getOrdersManager().clearPendingCreation(player.getUniqueId());
+            reopenMyOrders(player);
+            return true;
+        }
+        if (DialogActions.ORD_PICK_SRCH.equals(action)) {
+            click(player);
+            String search = input(response, "search");
+            openChooseItem(player, search == null ? "" : search);
+            return true;
+        }
+        if (action.startsWith(DialogActions.ORD_ITEM)) {
+            click(player);
+            String raw = DialogActions.argument(action, DialogActions.ORD_ITEM);
+            Material material = raw == null ? null : Material.matchMaterial(raw.toUpperCase(Locale.ROOT));
+            if (material == null
+                    || ChooseItemBlacklist.isBlacklisted(material, List.of())
+                    || !plugin.getOrdersManager().canOrderMaterial(material)) {
+                plugin.getOrdersManager().playSound(player, "ORDERS.FAIL");
+                return true;
+            }
+            OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+            boolean editingDraft = hasReviewDraft(session);
+            session.setChosenItem(new ItemStack(material));
+            session.setCategoryKey(plugin.getOrdersManager().resolveCategoryForMaterial(material));
+            if (session.getAmount() <= 0) {
+                session.setAmount(1);
+            }
+            if (QuickBuyItemDialog.isEnchantable(material)) {
+                openEnchantments(player, material);
+                return true;
+            }
+            if (editingDraft) {
+                openReview(player);
+            } else {
+                openAmount(player);
+            }
+            return true;
+        }
+        if (action.startsWith(DialogActions.ORD_ENCHANT_LVL)) {
+            String rest = action.substring(DialogActions.ORD_ENCHANT_LVL.length());
+            String[] parts = rest.split("/");
+            if (parts.length == 3) {
+                Material mat = Material.matchMaterial(parts[0]);
+                String enchKey = parts[1];
+                int lvl = 1;
+                try {
+                    lvl = Integer.parseInt(parts[2]);
+                } catch (NumberFormatException ignored) {}
+
+                if (mat != null) {
+                    Enchantment ench = QuickBuyEntry.findEnchantment(enchKey);
+                    if (ench != null) {
+                        OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+                        ItemStack item = session.getChosenItem();
+                        if (item == null || item.getType() != mat) {
+                            item = new ItemStack(mat);
+                        }
+                        Map<Enchantment, Integer> selected = getSelectedEnchantments(item);
+                        int currentLevel = selected.getOrDefault(ench, 0);
+                        if (lvl <= 0 || currentLevel == lvl) {
+                            selected.remove(ench);
+                        } else {
+                            selected.put(ench, lvl);
+                        }
+                        applyEnchantments(item, selected);
+                        session.setChosenItem(item);
+                    }
+                    click(player);
+                    openEnchantments(player, mat);
+                    return true;
+                }
+            }
+        }
+        if (DialogActions.ORD_ENCHANT_BACK.equals(action)) {
+            click(player);
+            openChooseItem(player);
+            return true;
+        }
+        if (action.startsWith(DialogActions.ORD_ENCHANT_SKIP)) {
+            String matName = action.substring(DialogActions.ORD_ENCHANT_SKIP.length());
+            Material mat = Material.matchMaterial(matName);
+            if (mat != null) {
+                OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+                session.setChosenItem(new ItemStack(mat));
+            }
+            click(player);
+            if (backToReviewIfDraft(player)) {
+                return true;
+            }
+            openAmount(player);
+            return true;
+        }
+        if (action.startsWith(DialogActions.ORD_ENCHANT_CONFIRM)) {
+            click(player);
+            if (backToReviewIfDraft(player)) {
+                return true;
+            }
+            openAmount(player);
+            return true;
+        }
+        if (DialogActions.ORD_AMT_CAN.equals(action)) {
+            click(player);
+            if (backToReviewIfDraft(player)) {
+                return true;
+            }
+            OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+            ItemStack chosen = session.getChosenItem();
+            if (chosen != null && QuickBuyItemDialog.isEnchantable(chosen.getType())) {
+                openEnchantments(player, chosen.getType());
+                return true;
+            }
+            openChooseItem(player);
+            return true;
+        }
+        if (DialogActions.ORD_AMT_NEXT.equals(action)) {
+            click(player);
+            if (!applyAmount(player, response)) {
+                plugin.getOrdersManager().playSound(player, "ORDERS.FAIL");
+                openAmount(player);
+                return true;
+            }
+            if (hasReviewDraft(player)) {
+                openReview(player);
+            } else {
+                openPrice(player, false);
+            }
+            return true;
+        }
+        if (DialogActions.ORD_PRICE_CAN.equals(action)) {
+            click(player);
+            if (backToReviewIfDraft(player)) {
+                return true;
+            }
+            openAmount(player);
+            return true;
+        }
+        if (DialogActions.ORD_PRICE_GO.equals(action)) {
+            click(player);
+            if (!applyPrice(player, response)) {
+                plugin.getOrdersManager().playSound(player, "ORDERS.FAIL");
+                openPrice(player, true);
+                return true;
+            }
+            openReview(player);
+            return true;
+        }
+        if (DialogActions.ORD_REV_ITEM.equals(action)) {
+            click(player);
+            openChooseItem(player);
+            return true;
+        }
+        if (DialogActions.ORD_REV_ENCHANT.equals(action)) {
+            click(player);
+            OrdersManager.NewOrderSession session = plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId());
+            ItemStack chosen = session.getChosenItem();
+            if (chosen != null && QuickBuyItemDialog.isEnchantable(chosen.getType())) {
+                openEnchantments(player, chosen.getType());
+                return true;
+            }
+            openChooseItem(player);
+            return true;
+        }
+        if (DialogActions.ORD_REV_AMT.equals(action)) {
+            click(player);
+            openAmount(player);
+            return true;
+        }
+        if (DialogActions.ORD_REV_PRICE.equals(action)) {
+            click(player);
+            openPrice(player, false);
+            return true;
+        }
+        if (DialogActions.ORD_REV_CREATE.equals(action)) {
+            click(player);
+            create(player);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean applyAmount(Player player, DialogResponseView response) {
+        OrdersManager manager = plugin.getOrdersManager();
+        OrdersManager.NewOrderSession session = manager.getOrCreateNewOrderSession(player.getUniqueId());
+        String raw = input(response, "amount");
+        try {
+            int amount = Math.toIntExact(NumberUtils.parseLong(raw == null ? "1" : raw));
+            if (amount <= 0 || amount > manager.getMaxQuantityPerOrder()) {
+                return false;
+            }
+            session.setAmount(amount);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean applyPrice(Player player, DialogResponseView response) {
+        OrdersManager manager = plugin.getOrdersManager();
+        OrdersManager.NewOrderSession session = manager.getOrCreateNewOrderSession(player.getUniqueId());
+        String raw = input(response, "price");
+        try {
+            double price = manager.roundCurrency(NumberUtils.parse(raw == null ? "" : raw));
+            if (price < manager.getMinPriceEach() || price > manager.getMaxPriceEach()) {
+                return false;
+            }
+            session.setPriceEach(price);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void create(Player player) {
+        OrdersManager manager = plugin.getOrdersManager();
+        if (!manager.beginAction(player.getUniqueId())) {
+            return;
+        }
+        try {
+            OrdersManager.CreateOrderResult result = manager.createOrder(player);
+            if (!result.success() || result.order() == null) {
+                if (result.reason() != null) {
+                    player.sendMessage(ColorUtils.toComponent(createFailureMessage(result)));
+                    plugin.getOrdersManager().playSound(player, "ORDERS.FAIL");
+                }
+                reopenMyOrders(player);
+                return;
+            }
+            PlayerSettingUtils.sendActionBar(
+                    plugin,
+                    player,
+                    plugin.getConfigManager().getMessageOrDefault(
+                            "ORDERS.CREATED",
+                            "&7You ordered &a{quantity} {item}",
+                            "{quantity}", String.valueOf(result.order().requestedQuantity()),
+                            "{item}", manager.describeItem(result.order().requestedItem()),
+                            "{order_id}", String.valueOf(result.order().id())
+                    )
+            );
+            plugin.getOrdersManager().playSound(player, "ORDERS.CREATE");
+            DialogSupport.close(player);
+            plugin.getSpigotScheduler().runEntity(player, () ->
+                    new OrdersMyOrdersMenu(plugin, 1, manager.getDefaultSort()).open(player));
+        } finally {
+            manager.endAction(player.getUniqueId());
+        }
+    }
+
+    private String createFailureMessage(OrdersManager.CreateOrderResult result) {
+        return switch (result.reason()) {
+            case DISABLED -> plugin.getConfigManager().getMessageOrDefault("ORDERS.DISABLED", "&cOrders is currently disabled.");
+            case NO_PENDING_ORDER -> plugin.getConfigManager().getMessageOrDefault("ORDERS.NO_PENDING_ORDER", "&cThere is no pending order draft to confirm.");
+            case NO_PLAYER_DATA -> "&cYour player data could not be loaded.";
+            case INVALID_ITEM -> plugin.getConfigManager().getMessageOrDefault("ORDERS.ITEM_BLOCKED", "&cThat item cannot be ordered.");
+            case UNSAFE_ITEM -> plugin.getConfigManager().getMessageOrDefault(
+                    "CRASH_PROTECTION.ITEM_BLOCKED",
+                    "&cThat item cannot be used here because its data looks unsafe.",
+                    "{context}", "Orders",
+                    "{reason}", result.safetyResult() == null ? "Unsafe item data" : result.safetyResult().reason()
+            );
+            case INVALID_QUANTITY -> plugin.getConfigManager().getMessageOrDefault("ORDERS.INVALID_QUANTITY", "&cInvalid quantity.");
+            case INVALID_PRICE -> plugin.getConfigManager().getMessageOrDefault("ORDERS.INVALID_PRICE", "&cInvalid price.");
+            case TOTAL_TOO_HIGH -> plugin.getConfigManager().getMessageOrDefault("ORDERS.TOTAL_TOO_HIGH", "&cTotal order budget is too high.");
+            case NO_MONEY -> plugin.getConfigManager().getMessageOrDefault("ORDERS.NOT_ENOUGH_MONEY", "&cYou do not have enough money for that order.");
+            case MAX_ORDERS_REACHED -> plugin.getConfigManager().getMessageOrDefault("ORDERS.MAX_ACTIVE_REACHED", "&cYou have reached your active order limit.");
+            case DATABASE_ERROR -> "&cOrders could not save your order right now. Try again.";
+        };
+    }
+
+    private void reopenBrowse(Player player) {
+        var state = plugin.getOrdersManager().getUiState(player.getUniqueId());
+        DialogSupport.close(player);
+        plugin.getSpigotScheduler().runEntity(player, () -> new OrdersBrowseMenu(
+                plugin, state.page() + 1, state.sort(), state.filter(), state.search()
+        ).open(player));
+    }
+
+    private void reopenMyOrders(Player player) {
+        DialogSupport.close(player);
+        plugin.getSpigotScheduler().runEntity(player, () ->
+                new OrdersMyOrdersMenu(plugin, 1, plugin.getOrdersManager().getDefaultSort()).open(player));
+    }
+
+    private boolean backToReviewIfDraft(Player player) {
+        if (!hasReviewDraft(player)) {
+            return false;
+        }
+        openReview(player);
+        return true;
+    }
+
+    private boolean hasReviewDraft(Player player) {
+        return hasReviewDraft(plugin.getOrdersManager().getOrCreateNewOrderSession(player.getUniqueId()));
+    }
+
+    private static boolean hasReviewDraft(OrdersManager.NewOrderSession session) {
+        return session != null
+                && session.getChosenItem() != null
+                && session.getAmount() > 0
+                && session.getPriceEach() > 0D;
+    }
+
+    private String text(String path, String fallback, String... placeholders) {
+        return plugin.getLanguageManager().text(path, null, fallback, placeholders);
+    }
+
+    private String formatPriceLine(String prefix, String valueWithSuffix, String raw) {
+        String symbol = plugin.getCurrencyManager().symbol(CurrencyManager.CurrencyType.MONEY);
+        String symbolColored = plugin.getCurrencyManager().coloredSymbol(CurrencyManager.CurrencyType.MONEY);
+        return sanitizePriceLine(raw, prefix, valueWithSuffix, symbol, symbolColored);
+    }
+
+    private String formatAmountLine(String path, String fallback, int amount) {
+        String val = String.valueOf(amount);
+        String raw = text(path, fallback, "{amount}", val);
+        if ("Amount: {amount}".equals(raw) || ("Amount: " + val).equals(raw)) {
+            return "&7Amount: &f" + val;
+        }
+        return raw;
+    }
+
+    private static String formatItemLine(String raw, String itemName) {
+        if ("Item: {item}".equals(raw) || ("Item: " + itemName).equals(raw)) {
+            return "&7Item: &f" + itemName;
+        }
+        return raw;
+    }
+
+    static String sanitizePriceLine(String raw, String prefix, String valueWithSuffix, String symbol, String symbolColored) {
+        if (raw == null || raw.isBlank()) {
+            return "&7" + prefix + " " + symbolColored + " &f" + valueWithSuffix;
+        }
+        if (raw.contains("$") || (symbol != null && !symbol.isBlank() && raw.contains(symbol))) {
+            return raw;
+        }
+        String stripped = raw.trim();
+        if (stripped.startsWith(prefix)) {
+            String remainder = stripped.substring(prefix.length()).trim();
+            return "&7" + prefix + " " + symbolColored + " &f" + remainder;
+        }
+        if (stripped.startsWith("&7" + prefix)) {
+            String remainder = stripped.substring(("&7" + prefix).length()).trim();
+            if (remainder.startsWith("&f")) {
+                remainder = remainder.substring(2).trim();
+            }
+            return "&7" + prefix + " " + symbolColored + " &f" + remainder;
+        }
+        return "&7" + prefix + " " + symbolColored + " &f" + valueWithSuffix;
+    }
+
+    private static String stripNumber(double value) {
+        if (value == Math.rint(value)) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
+    }
+}
