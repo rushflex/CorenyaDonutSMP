@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/mainn.png" alt="CorenyaDonutSMP" width="720">
+  <img src="images/banner.png" alt="CorenyaDonutSMP" width="720">
 </p>
 
 <h1 align="center">CorenyaDonutSMP</h1>
